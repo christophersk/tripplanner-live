@@ -40,25 +40,25 @@ $(function initializeMap (){
     styles: styleArr
   });
 
-  var iconURLs = {
-    hotel: '/images/lodging_0star.png',
-    restaurant: '/images/restaurant.png',
-    activity: '/images/star-3.png'
-  };
+  // var iconURLs = {
+  //   hotel: '/images/lodging_0star.png',
+  //   restaurant: '/images/restaurant.png',
+  //   activity: '/images/star-3.png'
+  // };
 
-  function drawMarker (type, coords) {
-    var latLng = new google.maps.LatLng(coords[0], coords[1]);
-    var iconURL = iconURLs[type];
-    var marker = new google.maps.Marker({
-      icon: iconURL,
-      position: latLng
-    });
-    marker.setMap(currentMap);
-  }
+  // function drawMarker (type, coords) {
+  //   var latLng = new google.maps.LatLng(coords[0], coords[1]);
+  //   var iconURL = iconURLs[type];
+  //   var marker = new google.maps.Marker({
+  //     icon: iconURL,
+  //     position: latLng
+  //   });
+  //   marker.setMap(currentMap);
+  // }
 
-    drawMarker('hotel', [41.8884073, -87.6293817]);
-    drawMarker('restaurant', [41.9134555, -87.6503527]);
-    drawMarker('activity', [41.8675766, -87.6162267])
+  //   drawMarker('hotel', [41.8884073, -87.6293817]);
+  //   drawMarker('restaurant', [41.9134555, -87.6503527]);
+  //   drawMarker('activity', [41.8675766, -87.6162267])
 
 });
 
@@ -70,48 +70,117 @@ $(document).ready(function() {
 
   const itinerary = [null, {}];
 
-  function createMarker(coordinates) {
-    const coordsArray = coordinates.split(',');
+  function createMarker() {
+    console.log('createMarker fired');
+    const hotels = itinerary[returnCurrentDay()].hotel;
+    const restaurants = itinerary[returnCurrentDay()].restaurant;
+    const activities = itinerary[returnCurrentDay()].activity;
 
-    var myLatlng = new google.maps.LatLng(+coordsArray[0],+coordsArray[1]);
-    var mapOptions = {
-      zoom: 15,
-      center: myLatlng
-    }
-    var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
-
-    var marker = new google.maps.Marker({
-        position: myLatlng,
-        title:"Hello World!"
+    var map = new google.maps.Map(document.getElementById('map-canvas'), {
+      zoom: 12,
+      center: {lat: 41.8912974, lng: -87.6270254},
+      maxZoom: 16
     });
-        // To add the marker to the map, call setMap();
-        marker.setMap(map);
+
+    var bounds = new google.maps.LatLngBounds();
+    console.log('bounds object is', bounds);
+    console.log('bounds object val is', bounds.b.b);
+
+    setMarkers(map);
+    if (bounds.b.b !== 180) {
+      map.fitBounds(bounds);
+    }
+    //map.setCenter({lat: 41.8912974, lng: -87.6270254});
+
+    function setMarkers(map) {
+      if (hotels) {
+        for (var i = 0; i < hotels.length; i++) {
+          var hotel = hotels[i];
+          const coordsArray = hotel[1].split(',');
+          var marker = new google.maps.Marker({
+            position: {lat: +coordsArray[0], lng: +coordsArray[1]},
+            map: map,
+            icon: '/images/lodging_0star.png',
+            title: hotel[0]
+          });
+          bounds.extend(marker.position);
+        }
+      }
+      if (restaurants) {
+        for (var i = 0; i < restaurants.length; i++) {
+          var restaurant = restaurants[i];
+          const coordsArray = restaurant[1].split(',');
+          var marker = new google.maps.Marker({
+            position: {lat: +coordsArray[0], lng: +coordsArray[1]},
+            map: map,
+            icon: '/images/restaurant.png',
+            title: restaurant[0]
+          });
+          bounds.extend(marker.position);
+        }
+      }
+      if (activities) {
+        for (var i = 0; i < activities.length; i++) {
+          var activity = activities[i];
+          const coordsArray = activity[1].split(',');
+          var marker = new google.maps.Marker({
+            position: {lat: +coordsArray[0], lng: +coordsArray[1]},
+            map: map,
+            icon: '/images/star-3.png',
+            title: activity[0]
+          });
+          bounds.extend(marker.position);
+        }
+      }
+    }
   }
+
+
+  // function createMarker(coordinates, image) {
+  //   const coordsArray = coordinates.split(',');
+
+  //   var myLatlng = new google.maps.LatLng(+coordsArray[0],+coordsArray[1]);
+  //   var mapOptions = {
+  //     zoom: 15,
+  //     center: myLatlng
+  //   }
+  //   var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+
+  //   var marker = new google.maps.Marker({
+  //       position: myLatlng,
+  //       title: "Hello World!",
+  //       icon: image
+  //   });
+  //       // To add the marker to the map, call setMap();
+  //       marker.setMap(map);
+  // }
 
   hotels.forEach(hotel => {
     $('#hotel-choices').append(`<option data-coordinates="${hotel.place.location}">${hotel.name}</option>`);
   })
   restaurants.forEach(restaurant => {
-    $('#restaurant-choices').append(`<option>${restaurant.name}</option>`);
+    $('#restaurant-choices').append(`<option data-coordinates="${restaurant.place.location}">${restaurant.name}</option>`);
   })
   activities.forEach(activity => {
-    $('#activity-choices').append(`<option>${activity.name}</option>`);
+    $('#activity-choices').append(`<option data-coordinates="${activity.place.location}">${activity.name}</option>`);
   })
 
   $('#add-hotel').on('click', function() {
     const hotelName = $('#hotel-choices').val();
-    itinerary[returnCurrentDay()].hotel = [hotelName];
-    createMarker($('#hotel-choices').find(':selected').data('coordinates'));
+    const hotelCoordinates = $('#hotel-choices').find(':selected').data('coordinates');
+    itinerary[returnCurrentDay()].hotel = [[hotelName, hotelCoordinates]];
+    //createMarker($('#hotel-choices').find(':selected').data('coordinates'), '/images/lodging_0star.png');
 
     $(`#day-${returnCurrentDay()}`).trigger('click');
   })
 
   $('#add-restaurant').on('click', function() {
     const restaurantName = $('#restaurant-choices').val();
+    const restaurantCoordinates = $('#restaurant-choices').find(':selected').data('coordinates');
     if (!itinerary[returnCurrentDay()].hasOwnProperty('restaurant')) {
-      itinerary[returnCurrentDay()].restaurant = [restaurantName];
+      itinerary[returnCurrentDay()].restaurant = [[restaurantName, restaurantCoordinates]];
     } else if (itinerary[returnCurrentDay()].restaurant.indexOf(restaurantName) === -1) {
-      itinerary[returnCurrentDay()].restaurant.push(restaurantName);
+      itinerary[returnCurrentDay()].restaurant.push([restaurantName, restaurantCoordinates]);
     }
     $(`#day-${returnCurrentDay()}`).trigger('click');
   })
@@ -119,10 +188,12 @@ $(document).ready(function() {
   $('#add-activity').on('click', function() {
     console.log($('#activity-choices').val())
     const activityName = $('#activity-choices').val();
+    const activityCoordinates = $('#activity-choices').find(':selected').data('coordinates');
     if (!itinerary[returnCurrentDay()].hasOwnProperty('activity')) {
-      itinerary[returnCurrentDay()].activity = [activityName];
+      itinerary[returnCurrentDay()].activity = [[activityName, activityCoordinates]];
     } else if (itinerary[returnCurrentDay()].activity.indexOf(activityName) === -1) {
-      itinerary[returnCurrentDay()].activity.push(activityName);
+      itinerary[returnCurrentDay()].activity.push([activityName, activityCoordinates]);
+      // createMarker($('#hotel-choices').find(':selected').data('coordinates'), '/images/star-3.png');
     }
     $(`#day-${returnCurrentDay()}`).trigger('click');
   })
@@ -167,30 +238,31 @@ $(document).ready(function() {
       $('.current-day').removeClass('current-day');
       $(this).addClass('current-day');
       $('#day-title-name').text(`Day ${dayNumber}`);
+      console.log(`day ${dayNumber} is`, itinerary[dayNumber]);
 
       let hotelString = '';
       if (Array.isArray(itinerary[returnCurrentDay()].hotel)) {
-        hotelString = `<li>${itinerary[returnCurrentDay()].hotel}<span data-category="hotel" data-name="${itinerary[returnCurrentDay()].hotel}" class="glyphicon glyphicon-remove-circle remove"></span></li>`;
+        console.log('hotel is', itinerary[returnCurrentDay()].hotel[0][0]);
+        hotelString = `<li>${itinerary[returnCurrentDay()].hotel[0][0]}<span data-category="hotel" data-name="${itinerary[returnCurrentDay()].hotel[0][0]}" class="glyphicon glyphicon-remove-circle remove"></span></li>`;
       }
       $('#hotel-list').html(hotelString);
 
       let restaurantString = '';
       if (Array.isArray(itinerary[returnCurrentDay()].restaurant)) {
         restaurantString = itinerary[returnCurrentDay()].restaurant.reduce((acc, restaurant) => {
-          return acc.concat(`<li>${restaurant}<span data-category="restaurant" data-name="${restaurant}" class="glyphicon glyphicon-remove-circle remove"></span></li>`)
+          return acc.concat(`<li>${restaurant[0]}<span data-category="restaurant" data-name="${restaurant[0]}" class="glyphicon glyphicon-remove-circle remove"></span></li>`)
         }, '')
       }
       $('#restaurant-list').html(restaurantString);
 
-
       let activityString = '';
       if (Array.isArray(itinerary[returnCurrentDay()].activity)) {
         activityString = itinerary[returnCurrentDay()].activity.reduce((acc, activity) => {
-          return acc.concat(`<li>${activity}<span data-category="activity" data-name="${activity}" class="glyphicon glyphicon-remove-circle remove"></span></li>`)
+          return acc.concat(`<li>${activity[0]}<span data-category="activity" data-name="${activity[0]}" class="glyphicon glyphicon-remove-circle remove"></span></li>`)
         }, '')
       }
       $('#activity-list').html(activityString);
-
+      createMarker();
     }
   })
 
